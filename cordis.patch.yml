@@ -1,6 +1,6 @@
 - insert:
     - id: aliyun-balance
-      name: '@local/aliyun-balance'
+      name: 'cloud-credit-watch'
       config:
         accessKeyId: ''
         accessKeySecret: ''

@@ -2,3 +2,5 @@ node_modules/
 .DS_Store
 *.log
 push.ps1
+.npmrc
+*.tgz
