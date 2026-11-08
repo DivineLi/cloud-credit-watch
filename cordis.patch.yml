@@ -1,0 +1,7 @@
+- insert:
+    - id: aliyun-balance
+      name: '@local/aliyun-balance'
+      config:
+        accessKeyId: ''
+        accessKeySecret: ''
+        pollingIntervalSeconds: 30
