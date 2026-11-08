@@ -1,6 +1,6 @@
 {
   "name": "cloud-credit-watch",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "DSH 插件：实时显示阿里云余额，包含学生 300 元代金券余额。自动定时刷新，聊天框下方直接看。",
   "type": "module",
   "license": "MIT",
