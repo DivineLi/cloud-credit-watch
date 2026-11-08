@@ -23,13 +23,13 @@ cloud-credit-watch
 **方式二：GitHub**
 
 ```
-https://github.com/xiaoli4188/cloud-credit-watch
+https://github.com/DivineLi/cloud-credit-watch
 ```
 
 **方式三：clone 下来装**
 
 ```bash
-git clone https://github.com/xiaoli4188/cloud-credit-watch.git
+git clone https://github.com/DivineLi/cloud-credit-watch.git
 ```
 
 然后在「添加插件」里填你 clone 下来的那个目录。
