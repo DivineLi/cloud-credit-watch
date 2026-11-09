@@ -1,4 +1,30 @@
 import crypto from 'node:crypto'
+import { readFileSync, writeFileSync, existsSync } from 'node:fs'
+import { join } from 'node:path'
+
+// ── 本地持久化：AK/SK 存到配置文件目录，重启不丢 ──
+
+const DATA_DIR = process.env.DSH_PROFILE_DIR
+  ? join(process.env.DSH_PROFILE_DIR)
+  : join(process.env.HOME || process.env.USERPROFILE || '.', '.dsh', 'profiles', 'desktop')
+const DATA_FILE = join(DATA_DIR, '.aliyun-balance.json')
+
+function loadAkSk() {
+  try {
+    if (existsSync(DATA_FILE)) {
+      const raw = readFileSync(DATA_FILE, 'utf-8')
+      const j = JSON.parse(raw)
+      return { ak: j.ak ?? '', sk: j.sk ?? '' }
+    }
+  } catch (_) { /* 文件损坏或不存在，用空值 */ }
+  return { ak: '', sk: '' }
+}
+
+function saveAkSk(ak, sk) {
+  try {
+    writeFileSync(DATA_FILE, JSON.stringify({ ak, sk }), 'utf-8')
+  } catch (_) { /* 写失败先不管 */ }
+}
 
 function percentEncode(str) {
   return encodeURIComponent(str)
@@ -135,7 +161,7 @@ async function refreshBalance() {
       couponCount: coupon.couponCount,
       totalBalance: total,
       currency: cash.currency,
-      availableAmount: String(total), // 兼容旧字段：总额
+      availableAmount: String(total),
       lastUpdated: Date.now(),
       error: null,
       configured: true,
@@ -152,8 +178,16 @@ async function refreshBalance() {
 export const inject = ['tools', 'timer', 'webServer']
 
 export function apply(ctx, config) {
-  currentAk = config.accessKeyId ?? ''
-  currentSk = config.accessKeySecret ?? ''
+  // 1. 优先从持久化文件加载 AK/SK，文件里没有才用 cordis.patch.yml 里的
+  const saved = loadAkSk()
+  if (saved.ak || saved.sk) {
+    currentAk = saved.ak
+    currentSk = saved.sk
+  } else {
+    currentAk = config.accessKeyId ?? ''
+    currentSk = config.accessKeySecret ?? ''
+  }
+
   const interval = Math.max(10, Number(config.pollingIntervalSeconds) || 30) * 1000
 
   refreshBalance()
@@ -167,9 +201,21 @@ export function apply(ctx, config) {
 
     if (a) currentAk = a
     if (s) currentSk = s
-    if (a || s) refreshBalance()
+    if (a || s) {
+      // 持久化到本地文件，重启不丢
+      saveAkSk(currentAk, currentSk)
+      refreshBalance()
+    }
 
-    return new Response(JSON.stringify({ ...bal, configured: !!(currentAk && currentSk) }), {
+    return new Response(JSON.stringify({
+      ...bal,
+      configured: !!(currentAk && currentSk),
+      _d: {
+        f: DATA_FILE,
+        ok: existsSync(DATA_FILE),
+        akLen: (currentAk || '').length,
+      },
+    }), {
       status: 200,
       headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
     })
@@ -183,7 +229,6 @@ export function apply(ctx, config) {
     })
   } catch (err) {
     if (err.message.includes('duplicate')) {
-      // 旧路由还没释放，没关系，bal/currentAk 都是模块级的，新旧路由读同一份数据
       console.warn('[aliyun-balance] 路由已存在，复用旧路由（代码已更新不影响）')
     } else {
       throw err
